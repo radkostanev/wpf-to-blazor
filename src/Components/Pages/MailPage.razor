@@ -1,0 +1,391 @@
+@page "/mail"
+@using OutlookInspiredApp.Blazor.Services.Interfaces
+@inject IMailService MailService
+@implements IDisposable
+
+<div class="mail-page">
+    <div class="mail-layout">
+        <!-- ── Email list pane ── -->
+        <div class="email-list-pane">
+            <div class="email-list-toolbar">
+                <div class="email-search-row">
+                    <div class="search-box-wrap">
+                        <TelerikTextBox Value="@searchText"
+                                        ValueChanged="@((string v) => searchText = v)"
+                                        Placeholder="Search Current Mailbox"
+                                        Width="100%">
+                            <TextBoxPrefixTemplate>
+                                <TelerikSvgIcon Icon="@SvgIcon.Search" />
+                            </TextBoxPrefixTemplate>
+                        </TelerikTextBox>
+                    </div>
+                </div>
+                <div class="email-filter-row">
+                    <TelerikButtonGroup SelectionMode="ButtonGroupSelectionMode.Single">
+                        <ButtonGroupToggleButton Selected="@(!showUnreadOnly)" OnClick="@(() => SetFilter(false))">All</ButtonGroupToggleButton>
+                        <ButtonGroupToggleButton Selected="@(showUnreadOnly)" OnClick="@(() => SetFilter(true))">Unread</ButtonGroupToggleButton>
+                    </TelerikButtonGroup>
+                </div>
+            </div>
+
+            @{
+                var displayEmails = GetFilteredEmails();
+                var grouped = GroupEmailsByDate(displayEmails);
+            }
+
+            @if (displayEmails.Count > 0)
+            {
+                <ul class="email-ul">
+                    @foreach (var group in grouped)
+                    {
+                        <li class="email-group-header">@group.Key</li>
+                        @foreach (var email in group.Value)
+                        {
+                            var isUnread = email.Status == EmailStatus.Unread;
+                            var hasFlagActive = email.FollowUpType != FollowUpType.None;
+                            var catColor = GetCategoryColor(email.CategoryID);
+                            <li class="email-item @(email.EmailID == selectedEmailId ? "selected" : "") @(isUnread ? "unread" : "")">
+                                @if (!string.IsNullOrEmpty(catColor))
+                                {
+                                    <span class="email-cat-stripe" style="background:@catColor"></span>
+                                }
+                                <a href="#" @onclick:preventDefault @onclick="() => SelectEmail(email.EmailID)">
+                                    <div class="email-row-top">
+                                        <span class="email-from">@email.From</span>
+                                        <div class="email-row-meta">
+                                            @if (hasFlagActive)
+                                            {
+                                                <span class="email-flag-icon" title="@email.FollowUpType">🚩</span>
+                                            }
+                                            <span class="email-date">@FormatDate(email.ReceivedDate)</span>
+                                        </div>
+                                    </div>
+                                    <div class="email-subject-row">@email.Subject</div>
+                                    <div class="email-preview">@GetPreview(email.Body)</div>
+                                </a>
+                            </li>
+                        }
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="no-emails">No messages in this folder.</div>
+            }
+        </div>
+
+        <!-- ── Email detail / compose pane ── -->
+        <div class="email-detail">
+            @if (composeMode != ComposeMode.None)
+            {
+                <!-- Inline compose / reply / forward form -->
+                <div class="compose-pane">
+                    <div class="compose-pane-header">
+                        <span class="compose-pane-title">
+                            @(composeMode == ComposeMode.Reply ? "Reply" :
+                              composeMode == ComposeMode.ReplyAll ? "Reply All" :
+                              composeMode == ComposeMode.Forward ? "Forward" : "New Message")
+                        </span>
+                        <TelerikButton FillMode="flat"
+                                       Icon="@SvgIcon.X"
+                                       Title="Discard"
+                                       OnClick="DiscardCompose"
+                                       ButtonType="ButtonType.Button">Discard</TelerikButton>
+                    </div>
+                    <div class="compose-fields">
+                        <div class="compose-field-row">
+                            <span class="compose-field-label">To...</span>
+                            <TelerikTextBox @bind-Value="composeTo" Width="100%" />
+                        </div>
+                        <div class="compose-field-row">
+                            <span class="compose-field-label">Cc...</span>
+                            <TelerikTextBox @bind-Value="composeCc" Width="100%" />
+                        </div>
+                        <div class="compose-field-row">
+                            <span class="compose-field-label">Subject</span>
+                            <TelerikTextBox @bind-Value="composeSubject" Width="100%" />
+                        </div>
+                    </div>
+                    <div class="compose-body-area">
+                        <TelerikTextArea @bind-Value="composeBody" Rows="10" Placeholder="Type your message here..." Width="100%" />
+                    </div>
+                    @if (composeMode != ComposeMode.New && selectedEmail != null)
+                    {
+                        <div class="compose-quote">
+                            <hr />
+                            <small class="compose-quote-meta">On @selectedEmail.ReceivedDate.ToLocalTime().ToString("ddd, MMM d, yyyy 'at' h:mm tt"), @selectedEmail.From wrote:</small>
+                            <blockquote class="compose-quote-body">@((MarkupString)selectedEmail.Body)</blockquote>
+                        </div>
+                    }
+                    <div class="compose-actions">
+                        <TelerikButton ThemeColor="primary"
+                                       Icon="@SvgIcon.PaperPlane"
+                                       OnClick="SendComposedEmail"
+                                       ButtonType="ButtonType.Button">Send</TelerikButton>
+                    </div>
+                </div>
+            }
+            else if (selectedEmail != null)
+            {
+                <div class="email-header">
+                    <div class="email-detail-actions">
+                        <TelerikButton FillMode="outline"
+                                       Icon="@SvgIcon.Undo"
+                                       Title="Reply"
+                                       OnClick='() => OpenCompose(ComposeMode.Reply)'
+                                       ButtonType="ButtonType.Button">Reply</TelerikButton>
+                        <TelerikButton FillMode="outline"
+                                       Icon="@SvgIcon.Undo"
+                                       Title="Reply All"
+                                       OnClick='() => OpenCompose(ComposeMode.ReplyAll)'
+                                       ButtonType="ButtonType.Button">Reply All</TelerikButton>
+                        <TelerikButton FillMode="outline"
+                                       Icon="@SvgIcon.Forward"
+                                       Title="Forward"
+                                       OnClick='() => OpenCompose(ComposeMode.Forward)'
+                                       ButtonType="ButtonType.Button">Forward</TelerikButton>
+                    </div>
+                    <div class="email-from-to-row">
+                        <span class="detail-label">From:</span>
+                        <span class="email-from-header">@selectedEmail.From</span>
+                        @if (!string.IsNullOrEmpty(selectedEmail.To))
+                        {
+                            <span class="detail-separator">│</span>
+                            <span class="detail-label">To:</span>
+                            <span class="detail-to">@selectedEmail.To</span>
+                        }
+                    </div>
+                    <div class="email-subject-date-row">
+                        <span class="detail-label">Topic:</span>
+                        <span class="email-subject-header">@selectedEmail.Subject</span>
+                        <span class="email-date-header">@selectedEmail.ReceivedDate.ToLocalTime().ToString("ddd, MMM d, yyyy h:mm tt")</span>
+                    </div>
+                    <div class="email-detail-divider"></div>
+                </div>
+                <div class="email-body-area">
+                    <div class="email-body">
+                        @((MarkupString)selectedEmail.Body)
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="no-selection">
+                    <div class="no-selection-icon">✉</div>
+                    <div>Select a message to read</div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Email>? emails;
+    private Email? selectedEmail;
+    private string? selectedEmailId;
+    private string searchText = "";
+    private bool showUnreadOnly = false;
+
+    // Inline compose state
+    private enum ComposeMode { None, New, Reply, ReplyAll, Forward }
+    private ComposeMode composeMode = ComposeMode.None;
+    private string composeTo = "";
+    private string composeCc = "";
+    private string composeSubject = "";
+    private string composeBody = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        MailService.StateChanged += OnMailStateChanged;
+
+        var state = MailService.GetState();
+        if (state.Emails.Count == 0)
+        {
+            // Fallback: MainLayout may not have loaded emails yet
+            await MailService.LoadEmailsAsync(state.SelectedFolderId ?? "inbox");
+        }
+
+        // Read emails from state (populated either by MainLayout or just above)
+        emails = MailService.GetState().Emails;
+
+        // Auto-select first email if none already selected
+        if (selectedEmailId == null && emails.Count > 0)
+            await SelectEmail(emails[0].EmailID);
+    }
+
+    private void OnMailStateChanged()
+    {
+        var state = MailService.GetState();
+        emails = state.Emails;
+        if (selectedEmail != null && emails?.All(e => e.EmailID != selectedEmailId) == true)
+        {
+            selectedEmail = null;
+            selectedEmailId = null;
+        }
+
+        // Handle compose action requested by Ribbon
+        if (state.PendingCompose != MailComposeAction.None)
+        {
+            var mode = state.PendingCompose switch
+            {
+                MailComposeAction.New      => ComposeMode.New,
+                MailComposeAction.Reply    => ComposeMode.Reply,
+                MailComposeAction.ReplyAll => ComposeMode.ReplyAll,
+                MailComposeAction.Forward  => ComposeMode.Forward,
+                _                          => ComposeMode.None
+            };
+            // Clear before invoking to avoid re-entrancy loops
+            state.PendingCompose = MailComposeAction.None;
+            if (mode != ComposeMode.None)
+                OpenCompose(mode);
+        }
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SelectEmail(string emailId)
+    {
+        composeMode = ComposeMode.None;
+        selectedEmailId = emailId;
+        await MailService.SelectEmailAsync(emailId);
+        var state = MailService.GetState();
+        selectedEmail = state.SelectedEmail;
+    }
+
+    private void SetFilter(bool unreadOnly)
+    {
+        showUnreadOnly = unreadOnly;
+    }
+
+    private void ClearSearch()
+    {
+        searchText = "";
+    }
+
+    private List<Email> GetFilteredEmails()
+    {
+        var list = emails ?? new List<Email>();
+        if (showUnreadOnly)
+            list = list.Where(e => e.Status == EmailStatus.Unread).ToList();
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            var q = searchText.ToLowerInvariant();
+            list = list.Where(e =>
+                e.Subject.ToLowerInvariant().Contains(q) ||
+                e.From.ToLowerInvariant().Contains(q) ||
+                e.Body.ToLowerInvariant().Contains(q)).ToList();
+        }
+        return list;
+    }
+
+    private Dictionary<string, List<Email>> GroupEmailsByDate(List<Email> list)
+    {
+        var result = new Dictionary<string, List<Email>>();
+        var today = DateTime.Today;
+        var groups = list
+            .OrderByDescending(e => e.ReceivedDate)
+            .GroupBy(e =>
+            {
+                var d = e.ReceivedDate.ToLocalTime().Date;
+                if (d == today) return "Today";
+                if (d == today.AddDays(-1)) return "Yesterday";
+                if ((today - d).TotalDays < 7) return "This Week";
+                if (d.Month == today.Month && d.Year == today.Year) return "This Month";
+                return d.ToString("MMMM yyyy");
+            });
+        foreach (var g in groups)
+            result[g.Key] = g.ToList();
+        return result;
+    }
+
+    private void OpenCompose(ComposeMode mode)
+    {
+        composeMode = mode;
+        composeBody = "";
+        composeCc = "";
+        switch (mode)
+        {
+            case ComposeMode.New:
+                composeTo = "";
+                composeSubject = "";
+                break;
+            case ComposeMode.Reply:
+                composeTo = selectedEmail?.From ?? "";
+                composeSubject = $"Re: {selectedEmail?.Subject}";
+                break;
+            case ComposeMode.ReplyAll:
+                composeTo = selectedEmail?.From ?? "";
+                composeCc = selectedEmail?.Cc ?? "";
+                composeSubject = $"Re: {selectedEmail?.Subject}";
+                break;
+            case ComposeMode.Forward:
+                composeTo = "";
+                composeSubject = $"Fwd: {selectedEmail?.Subject}";
+                break;
+        }
+    }
+
+    private void DiscardCompose()
+    {
+        composeMode = ComposeMode.None;
+    }
+
+    private async Task SendComposedEmail()
+    {
+        if (string.IsNullOrWhiteSpace(composeTo) || string.IsNullOrWhiteSpace(composeSubject))
+            return;
+
+        var email = new Email
+        {
+            EmailID = Guid.NewGuid().ToString(),
+            From = "user@outlook.com",
+            To = composeTo,
+            Cc = composeCc,
+            Subject = composeSubject,
+            Body = composeBody,
+            FolderID = "sent",
+            SentDate = DateTime.UtcNow,
+            ReceivedDate = DateTime.UtcNow,
+            Status = EmailStatus.Read
+        };
+        await MailService.ComposeAsync(email);
+        composeMode = ComposeMode.None;
+    }
+
+    // Called by Ribbon "New Email" button via CascadingValue or EventCallback
+    public void BeginNewEmail() => OpenCompose(ComposeMode.New);
+    public void BeginReply() { if (selectedEmail != null) OpenCompose(ComposeMode.Reply); }
+    public void BeginReplyAll() { if (selectedEmail != null) OpenCompose(ComposeMode.ReplyAll); }
+    public void BeginForward() { if (selectedEmail != null) OpenCompose(ComposeMode.Forward); }
+
+    private static string GetCategoryColor(string? categoryId) => categoryId switch
+    {
+        "Yellow Category" => "#FFD700",
+        "Green Category"  => "#44A340",
+        "Purple Category" => "#9B59B6",
+        "Pink Category"   => "#E91E8C",
+        _                 => string.Empty
+    };
+
+    private string FormatDate(DateTime date)
+    {
+        var local = date.ToLocalTime();
+        if (local.Date == DateTime.Today) return local.ToString("h:mm tt");
+        if (local.Date == DateTime.Today.AddDays(-1)) return "Yesterday";
+        if ((DateTime.Today - local.Date).TotalDays < 7) return local.ToString("ddd");
+        return local.ToString("M/d/yyyy");
+    }
+
+    private string GetPreview(string body)
+    {
+        var text = System.Text.RegularExpressions.Regex.Replace(body, "<[^>]+>", " ");
+        text = System.Net.WebUtility.HtmlDecode(text);
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+        return text.Length > 80 ? text[..80] + "…" : text;
+    }
+
+    public void Dispose()
+    {
+        MailService.StateChanged -= OnMailStateChanged;
+    }
+}

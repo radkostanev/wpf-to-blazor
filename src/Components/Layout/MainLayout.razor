@@ -1,0 +1,298 @@
+@using OutlookInspiredApp.Blazor.Services.Interfaces
+@using OutlookInspiredApp.Blazor.Components.Mail
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject NavigationManager Nav
+@inject IDataStore DataStore
+@inject IMailService MailService
+@inject ICalendarService CalendarService
+@inject IThemeService ThemeService
+
+<HeadContent>
+    <link rel="stylesheet" href="@($"_content/Telerik.UI.for.Blazor/css/{ThemeService.CurrentTheme}/all.css")" />
+</HeadContent>
+
+<div class="main-container">
+    <div class="ribbon-area">
+        <Ribbon @ref="ribbonRef" ComposeModalRef="composeModalRef" CurrentView="@currentView" />
+    </div>
+    
+    <div class="content-area">
+        <div class="outlook-bar">
+            <!-- Scrollable section showing folders / mini-calendar for current view -->
+            <div class="outlook-bar-folders">
+                @if (currentView == "mail" && mailFolders != null)
+                {
+                    <div class="sidebar-section-header">Mail Folders</div>
+                    <TelerikTreeView Data="@mailFolders"
+                                     SelectionMode="TreeViewSelectionMode.Single"
+                                     SelectedItems="@treeSelectedItems"
+                                     SelectedItemsChanged="@OnFolderSelectionChanged"
+                                     ExpandedItems="@treeExpandedItems"
+                                     ExpandedItemsChanged="@((IEnumerable<object> items) => treeExpandedItems = items)">
+                        <TreeViewBindings>
+                            <TreeViewBinding TextField="Name"
+                                             IdField="FolderID"
+                                             ItemsField="SubFolders"
+                                             HasChildrenField="HasChildren">
+                                <ItemTemplate>
+                                    @{
+                                        var tvFolder = context as OutlookInspiredApp.Blazor.Models.Folder;
+                                    }
+                                    @if (tvFolder != null)
+                                    {
+                                        <span class="folder-icon">@GetFolderIcon(tvFolder.Name)</span>
+                                        <span class="folder-name">@tvFolder.Name</span>
+                                        @if (tvFolder.UnreadCount > 0)
+                                        {
+                                            <span class="folder-unread-badge">@tvFolder.UnreadCount</span>
+                                        }
+                                    }
+                                </ItemTemplate>
+                            </TreeViewBinding>
+                        </TreeViewBindings>
+                    </TelerikTreeView>
+                }
+                else if (currentView == "calendar")
+                {
+                    <!-- Mini calendar for calendar view -->
+                    <div class="mini-calendar-wrap">
+                        <TelerikCalendar Value="@miniCalendarDate"
+                                         ValueChanged="@OnMiniCalendarDateChanged"
+                                         SelectionMode="@CalendarSelectionMode.Single"
+                                         ShowOtherMonthDays="true"
+                                         Class="mini-cal" />
+                    </div>
+                    <!-- My Calendars section -->
+                    <div class="sidebar-section-header">My Calendars</div>
+                    <ul class="calendar-check-list">
+                        <li class="calendar-check-item">
+                            <label>
+                                <TelerikCheckBox @bind-Value="calCalendarChecked" />
+                                <span class="cal-color-dot cal-blue"></span>
+                                <span>Calendar</span>
+                            </label>
+                        </li>
+                        <li class="calendar-check-item">
+                            <label>
+                                <TelerikCheckBox @bind-Value="calBirthdaysChecked" />
+                                <span class="cal-color-dot cal-green"></span>
+                                <span>Birthdays</span>
+                            </label>
+                        </li>
+                        <li class="calendar-check-item">
+                            <label>
+                                <TelerikCheckBox @bind-Value="calHolidaysChecked" />
+                                <span class="cal-color-dot cal-red"></span>
+                                <span>Holidays</span>
+                            </label>
+                        </li>
+                    </ul>
+                    <div class="sidebar-section-header">Other Calendars</div>
+                    <ul class="calendar-check-list">
+                        <li class="calendar-check-item">
+                            <label>
+                                <TelerikCheckBox @bind-Value="calTeamChecked" />
+                                <span class="cal-color-dot cal-purple"></span>
+                                <span>Team Calendar</span>
+                            </label>
+                        </li>
+                    </ul>
+                }
+            </div>
+
+            <!-- Bottom nav bar (WPF OutlookBar-style navigation sections) -->
+            <div class="outlook-bar-bottom">
+                <TelerikButton FillMode="flat"
+                               Class='@NavBtnClass("mail")'
+                               Icon="@SvgIcon.Envelope"
+                               Title="Mail"
+                               OnClick='() => SelectView("mail")'
+                               ButtonType="ButtonType.Button">Mail</TelerikButton>
+                <TelerikButton FillMode="flat"
+                               Class='@NavBtnClass("calendar")'
+                               Icon="@SvgIcon.Calendar"
+                               Title="Calendar"
+                               OnClick='() => SelectView("calendar")'
+                               ButtonType="ButtonType.Button">Calendar</TelerikButton>
+                <TelerikButton FillMode="flat"
+                               Class='@NavBtnClass("people")'
+                               Icon="@SvgIcon.UserOutline"
+                               Title="People"
+                               OnClick='() => SelectView("people")'
+                               ButtonType="ButtonType.Button">People</TelerikButton>
+                <TelerikButton FillMode="flat"
+                               Class='@NavBtnClass("tasks")'
+                               Icon="@SvgIcon.CheckboxChecked"
+                               Title="Tasks"
+                               OnClick='() => SelectView("tasks")'
+                               ButtonType="ButtonType.Button">Tasks</TelerikButton>
+                <TelerikButton FillMode="flat"
+                               Class='@NavBtnClass("notes")'
+                               Icon="@SvgIcon.StickyNote"
+                               Title="Notes"
+                               OnClick='() => SelectView("notes")'
+                               ButtonType="ButtonType.Button">Notes</TelerikButton>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            @Body
+        </div>
+    </div>
+</div>
+
+<ComposeModal @ref="composeModalRef" OnClose="OnComposeClose" />
+
+@code {
+    private Ribbon? ribbonRef;
+    private ComposeModal? composeModalRef;
+    private string currentView = "mail";
+    private string selectedFolderId = "";
+    private List<OutlookInspiredApp.Blazor.Models.Folder>? mailFolders;
+    private DateTime miniCalendarDate = DateTime.Today;
+
+    // TreeView folder selection
+    private IEnumerable<object> treeSelectedItems = Enumerable.Empty<object>();
+    private IEnumerable<object> treeExpandedItems = Enumerable.Empty<object>();
+
+    // Calendar sidebar checkbox state
+    private bool calCalendarChecked = true;
+    private bool calBirthdaysChecked = false;
+    private bool calHolidaysChecked = false;
+    private bool calTeamChecked = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await DataStore.InitializeAsync();
+        try
+        {
+            await MailService.LoadFoldersAsync();
+            var state = MailService.GetState();
+            mailFolders = state.Folders;
+
+            // Default: select inbox and load its emails
+            var inbox = mailFolders?.FirstOrDefault(f => f.Name == "Inbox")
+                        ?? mailFolders?.SelectMany(f => f.SubFolders).FirstOrDefault(f => f.Name == "Inbox")
+                        ?? mailFolders?.FirstOrDefault();
+            if (inbox != null)
+            {
+                selectedFolderId = inbox.FolderID;
+                treeSelectedItems = new List<object> { inbox };
+                await MailService.LoadEmailsAsync(inbox.FolderID);
+
+                // Pre-expand the account folder that contains inbox
+                var accountFolder = mailFolders?.FirstOrDefault(f => f.SubFolders.Contains(inbox));
+                if (accountFolder != null)
+                    treeExpandedItems = new List<object> { accountFolder };
+            }
+
+            await CalendarService.LoadResourcesAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error initializing data: {ex.Message}");
+        }
+
+        // Determine initial view from URL
+        UpdateViewFromUrl();
+        Nav.LocationChanged += OnLocationChanged;
+        ThemeService.StateChanged += OnThemeChanged;
+        MailService.StateChanged += OnMailStateChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        UpdateViewFromUrl();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnMailStateChanged()
+    {
+        var state = MailService.GetState();
+        mailFolders = state.Folders;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void UpdateViewFromUrl()
+    {
+        var uri = Nav.Uri;
+        if (uri.Contains("/calendar")) currentView = "calendar";
+        else if (uri.Contains("/people")) currentView = "people";
+        else if (uri.Contains("/tasks")) currentView = "tasks";
+        else if (uri.Contains("/notes")) currentView = "notes";
+        else currentView = "mail";
+    }
+
+    private string NavBtnClass(string view) =>
+        currentView == view ? "nav-section-btn active" : "nav-section-btn";
+
+    private void SelectView(string view)
+    {
+        currentView = view;
+        Nav.NavigateTo(view);
+    }
+
+    private async Task SelectFolder(string folderId)
+    {
+        selectedFolderId = folderId;
+        // Notify MailPage via service state
+        await MailService.LoadEmailsAsync(folderId);
+        StateHasChanged();
+    }
+
+    private async Task OnFolderSelectionChanged(IEnumerable<object> items)
+    {
+        treeSelectedItems = items;
+        var folder = items.FirstOrDefault() as OutlookInspiredApp.Blazor.Models.Folder;
+        if (folder != null)
+        {
+            await SelectFolder(folder.FolderID);
+        }
+    }
+
+    private async Task OnComposeClose()
+    {
+        var state = MailService.GetState();
+        if (state.SelectedFolderId != null)
+        {
+            await MailService.LoadEmailsAsync(state.SelectedFolderId);
+        }
+    }
+
+    private string GetFolderIcon(string folderName) => folderName.ToLower() switch
+    {
+        "inbox" => "📥",
+        "sent" or "sent items" => "📤",
+        "drafts" => "📄",
+        "deleted items" or "trash" => "🗑",
+        "junk" or "junk email" or "spam" => "⛔",
+        "outbox" => "📤",
+        "archive" => "📦",
+        _ => "📁"
+    };
+
+    private async Task OnMiniCalendarDateChanged(DateTime date)
+    {
+        miniCalendarDate = date;
+        await CalendarService.NavigateToDateAsync(date);
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+        ThemeService.StateChanged -= OnThemeChanged;
+        MailService.StateChanged -= OnMailStateChanged;
+    }
+}

@@ -1,0 +1,190 @@
+@page "/tasks"
+
+<div class="page-container">
+    <div class="page-header">
+        <h2>Tasks</h2>
+        <TelerikButton ThemeColor="primary"
+                       Icon="@SvgIcon.Plus"
+                       OnClick="OnNewTask"
+                       ButtonType="ButtonType.Button">New Task</TelerikButton>
+    </div>
+
+    <div class="page-content">
+        <TelerikGrid Data="@tasks"
+                     Pageable="false"
+                     Sortable="true"
+                     FilterMode="GridFilterMode.FilterMenu"
+                     EditMode="GridEditMode.Inline"
+                     OnUpdate="@OnTaskUpdate"
+                     OnDelete="@OnTaskDelete"
+                     Height="100%">
+            <GridColumns>
+                <GridColumn Width="60px" Title="" Filterable="false" Sortable="false">
+                    <Template>
+                        @{
+                            var task = context as TaskItem;
+                        }
+                        @if (task != null)
+                        {
+                            <TelerikCheckBox Value="@task.IsComplete"
+                                             ValueChanged="@((bool v) => OnTaskCompleteToggle(task, v))" />
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn Field="@nameof(TaskItem.Title)" Title="Task">
+                    <Template>
+                        @{
+                            var task = context as TaskItem;
+                        }
+                        @if (task != null)
+                        {
+                            <span class="@(task.IsComplete ? "task-title-done" : "")">@task.Title</span>
+                        }
+                    </Template>
+                </GridColumn>
+                <GridColumn Field="@nameof(TaskItem.DueDate)" Title="Due Date" Width="150px">
+                    <Template>
+                        @{
+                            var task = context as TaskItem;
+                        }
+                        @task?.DueDate?.ToString("MMM d, yyyy")
+                    </Template>
+                </GridColumn>
+                <GridColumn Field="@nameof(TaskItem.Priority)" Title="Priority" Width="120px">
+                    <Template>
+                        @{
+                            var task = context as TaskItem;
+                            var color = task?.Priority switch
+                            {
+                                "High" => "#e74c3c",
+                                "Medium" => "#f39c12",
+                                "Low" => "#27ae60",
+                                _ => "#666"
+                            };
+                        }
+                        <span style="color:@color; font-weight:600">@task?.Priority</span>
+                    </Template>
+                </GridColumn>
+                <GridCommandColumn Width="100px" Title="Actions">
+                    <GridCommandButton Command="Edit" Icon="@SvgIcon.Pencil" FillMode="flat">Edit</GridCommandButton>
+                    <GridCommandButton Command="Delete" Icon="@SvgIcon.Trash" FillMode="flat">Delete</GridCommandButton>
+                    <GridCommandButton Command="Save" Icon="@SvgIcon.Check" ShowInEdit="true">Save</GridCommandButton>
+                    <GridCommandButton Command="Cancel" Icon="@SvgIcon.X" ShowInEdit="true">Cancel</GridCommandButton>
+                </GridCommandColumn>
+            </GridColumns>
+        </TelerikGrid>
+    </div>
+</div>
+
+@if (showNewTaskDialog)
+{
+    <TelerikWindow Visible="@showNewTaskDialog"
+                   VisibleChanged="@OnNewTaskDialogClose"
+                   Modal="true"
+                   Width="450px"
+                   Draggable="true"
+                   AnimationType="WindowAnimationType.Fade">
+        <WindowTitle>New Task</WindowTitle>
+        <WindowActions>
+            <WindowAction Name="Close" />
+        </WindowActions>
+        <WindowContent>
+            <div class="form-group">
+                <label>Title:</label>
+                <TelerikTextBox @bind-Value="newTaskTitle" Placeholder="Enter task title" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Due Date:</label>
+                <TelerikDatePicker @bind-Value="newTaskDueDate" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Priority:</label>
+                <TelerikDropDownList Data="@priorityOptions"
+                                     @bind-Value="newTaskPriority"
+                                     Width="100%" />
+            </div>
+        </WindowContent>
+        <WindowFooter>
+            <TelerikButton ThemeColor="primary"
+                           OnClick="SaveNewTask"
+                           ButtonType="ButtonType.Button">Add Task</TelerikButton>
+            <TelerikButton FillMode="outline"
+                           OnClick="@(() => showNewTaskDialog = false)"
+                           ButtonType="ButtonType.Button">Cancel</TelerikButton>
+        </WindowFooter>
+    </TelerikWindow>
+}
+
+@code {
+    public class TaskItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public DateTime? DueDate { get; set; }
+        public string Priority { get; set; } = "Medium";
+        public bool IsComplete { get; set; }
+    }
+
+    private List<TaskItem> tasks = new()
+    {
+        new TaskItem { Id = 1,  Title = "Review Q1 Budget Proposal",       DueDate = new DateTime(2026, 3, 15), Priority = "High",   IsComplete = false },
+        new TaskItem { Id = 2,  Title = "Schedule Team Meeting",            DueDate = new DateTime(2026, 2, 25), Priority = "Medium", IsComplete = false },
+        new TaskItem { Id = 3,  Title = "Update Project Timeline",          DueDate = new DateTime(2026, 2, 28), Priority = "Medium", IsComplete = false },
+        new TaskItem { Id = 4,  Title = "Send Status Report to Management", DueDate = new DateTime(2026, 3, 1),  Priority = "Low",    IsComplete = false },
+        new TaskItem { Id = 5,  Title = "Review Client Feedback",           DueDate = new DateTime(2026, 2, 20), Priority = "Medium", IsComplete = true  },
+        new TaskItem { Id = 6,  Title = "Prepare Presentation Slides",      DueDate = new DateTime(2026, 2, 19), Priority = "High",   IsComplete = true  },
+    };
+
+    private readonly List<string> priorityOptions = new() { "High", "Medium", "Low" };
+    private bool showNewTaskDialog = false;
+    private string newTaskTitle = "";
+    private DateTime? newTaskDueDate = DateTime.Today.AddDays(7);
+    private string newTaskPriority = "Medium";
+
+    private void OnNewTask()
+    {
+        newTaskTitle = "";
+        newTaskDueDate = DateTime.Today.AddDays(7);
+        newTaskPriority = "Medium";
+        showNewTaskDialog = true;
+    }
+
+    private void SaveNewTask()
+    {
+        if (!string.IsNullOrWhiteSpace(newTaskTitle))
+        {
+            tasks.Add(new TaskItem
+            {
+                Id = tasks.Count + 1,
+                Title = newTaskTitle,
+                DueDate = newTaskDueDate,
+                Priority = newTaskPriority,
+                IsComplete = false
+            });
+        }
+        showNewTaskDialog = false;
+    }
+
+    private void OnNewTaskDialogClose(bool visible)
+    {
+        showNewTaskDialog = visible;
+    }
+
+    private void OnTaskCompleteToggle(TaskItem task, bool value)
+    {
+        task.IsComplete = value;
+    }
+
+    private void OnTaskUpdate(GridCommandEventArgs args)
+    {
+        var updated = (TaskItem)args.Item;
+        var index = tasks.FindIndex(t => t.Id == updated.Id);
+        if (index >= 0) tasks[index] = updated;
+    }
+
+    private void OnTaskDelete(GridCommandEventArgs args)
+    {
+        var deleted = (TaskItem)args.Item;
+        tasks.RemoveAll(t => t.Id == deleted.Id);
+    }
+}

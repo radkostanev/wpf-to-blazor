@@ -1,0 +1,17 @@
+/* Calendar page - full height TelerikScheduler */
+.calendar-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    overflow: hidden;
+}
+
+/* Ensure the Telerik scheduler fills all remaining space */
+.calendar-page .k-scheduler {
+    flex: 1;
+    min-height: 0;
+    border: none !important;
+    border-radius: 0 !important;
+}

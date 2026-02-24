@@ -1,0 +1,169 @@
+@page "/people"
+
+<div class="page-container">
+    <div class="page-header">
+        <h2>Contacts</h2>
+        <TelerikButton ThemeColor="primary"
+                       Icon="@SvgIcon.UserOutline"
+                       OnClick="OnNewContact"
+                       ButtonType="ButtonType.Button">New Contact</TelerikButton>
+    </div>
+
+    <div class="page-content">
+        <div class="contacts-grid">
+            @foreach (var contact in contacts)
+            {
+                <TelerikCard Width="280px" Class="contact-card">
+                    <CardHeader>
+                        <div class="contact-avatar">@contact.Initials</div>
+                    </CardHeader>
+                    <CardBody>
+                        <CardTitle>@contact.Name</CardTitle>
+                        <CardSubTitle>@contact.Company</CardSubTitle>
+                        <p class="contact-email">@contact.Email</p>
+                        @if (!string.IsNullOrEmpty(contact.Phone))
+                        {
+                            <p class="contact-phone">@contact.Phone</p>
+                        }
+                    </CardBody>
+                    <CardActions Layout="@CardActionsLayout.End">
+                        <TelerikButton FillMode="flat"
+                                       Icon="@SvgIcon.Pencil"
+                                       Title="Edit"
+                                       OnClick="@(() => EditContact(contact))"
+                                       ButtonType="ButtonType.Button" />
+                        <TelerikButton FillMode="flat"
+                                       Icon="@SvgIcon.Trash"
+                                       Title="Delete"
+                                       OnClick="@(() => DeleteContact(contact))"
+                                       ButtonType="ButtonType.Button" />
+                    </CardActions>
+                </TelerikCard>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showContactEditor)
+{
+    <TelerikWindow Visible="@showContactEditor"
+                   VisibleChanged="@OnContactEditorClose"
+                   Modal="true"
+                   Width="480px"
+                   Draggable="true"
+                   AnimationType="WindowAnimationType.Fade">
+        <WindowTitle>@(editingContact?.Id == 0 ? "New Contact" : "Edit Contact")</WindowTitle>
+        <WindowActions>
+            <WindowAction Name="Close" />
+        </WindowActions>
+        <WindowContent>
+            <div class="form-group">
+                <label>Full Name:</label>
+                <TelerikTextBox @bind-Value="editName" Placeholder="Full name" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Email:</label>
+                <TelerikTextBox @bind-Value="editEmail" Placeholder="email@example.com" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Company:</label>
+                <TelerikTextBox @bind-Value="editCompany" Placeholder="Company name" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Phone:</label>
+                <TelerikTextBox @bind-Value="editPhone" Placeholder="+1 555-000-0000" Width="100%" />
+            </div>
+        </WindowContent>
+        <WindowFooter>
+            <TelerikButton ThemeColor="primary"
+                           Icon="@SvgIcon.Save"
+                           OnClick="SaveContact"
+                           ButtonType="ButtonType.Button">Save</TelerikButton>
+            <TelerikButton FillMode="outline"
+                           Icon="@SvgIcon.X"
+                           OnClick="@(() => showContactEditor = false)"
+                           ButtonType="ButtonType.Button">Cancel</TelerikButton>
+        </WindowFooter>
+    </TelerikWindow>
+}
+
+@code {
+    public class ContactItem
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Company { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public string Initials => string.Concat(Name.Split(' ').Take(2).Select(p => p.Length > 0 ? p[0].ToString().ToUpper() : ""));
+    }
+
+    private List<ContactItem> contacts = new()
+    {
+        new ContactItem { Id = 1, Name = "John Doe",     Email = "john.doe@outlook.com",    Company = "Contoso Ltd.",       Phone = "+1 555-010-1234" },
+        new ContactItem { Id = 2, Name = "Sarah Davis",  Email = "sarah.davis@outlook.com",  Company = "Fabrikam Inc.",       Phone = "+1 555-020-5678" },
+        new ContactItem { Id = 3, Name = "Mike Johnson", Email = "mike.johnson@outlook.com", Company = "Tailwind Traders",    Phone = "+1 555-030-9012" },
+        new ContactItem { Id = 4, Name = "Emily Wilson", Email = "emily.wilson@outlook.com", Company = "Northwind",           Phone = "+1 555-040-3456" },
+    };
+
+    private bool showContactEditor = false;
+    private ContactItem? editingContact;
+    private string editName = "";
+    private string editEmail = "";
+    private string editCompany = "";
+    private string editPhone = "";
+
+    private void OnNewContact()
+    {
+        editingContact = new ContactItem { Id = 0 };
+        editName = editEmail = editCompany = editPhone = "";
+        showContactEditor = true;
+    }
+
+    private void EditContact(ContactItem contact)
+    {
+        editingContact = contact;
+        editName = contact.Name;
+        editEmail = contact.Email;
+        editCompany = contact.Company;
+        editPhone = contact.Phone;
+        showContactEditor = true;
+    }
+
+    private void DeleteContact(ContactItem contact)
+    {
+        contacts.Remove(contact);
+    }
+
+    private void SaveContact()
+    {
+        if (editingContact == null || string.IsNullOrWhiteSpace(editName))
+            return;
+
+        if (editingContact.Id == 0)
+        {
+            contacts.Add(new ContactItem
+            {
+                Id = contacts.Count + 1,
+                Name = editName,
+                Email = editEmail,
+                Company = editCompany,
+                Phone = editPhone
+            });
+        }
+        else
+        {
+            editingContact.Name = editName;
+            editingContact.Email = editEmail;
+            editingContact.Company = editCompany;
+            editingContact.Phone = editPhone;
+        }
+
+        showContactEditor = false;
+    }
+
+    private void OnContactEditorClose(bool visible)
+    {
+        showContactEditor = visible;
+    }
+}

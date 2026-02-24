@@ -1,0 +1,235 @@
+/* Compose modal styles */
+.compose-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.compose-modal {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.compose-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: linear-gradient(to right, #f9f9f9, #f5f5f5);
+}
+
+.compose-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.close-btn:hover {
+    color: #333;
+}
+
+.compose-body {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #333;
+    font-size: 13px;
+}
+
+.form-control {
+    padding: 10px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #0078d4;
+    box-shadow: 0 0 4px rgba(0, 120, 212, 0.4);
+}
+
+textarea.form-control {
+    resize: none;
+    max-height: 300px;
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.5;
+}
+
+.compose-quote {
+    background-color: #f9f9f9;
+    border-left: 4px solid #d0d0d0;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.compose-quote blockquote {
+    margin: 10px 0 0 0;
+    padding: 10px;
+    background-color: white;
+    border-radius: 2px;
+    border-left: 2px solid #0078d4;
+}
+
+.compose-quote pre {
+    margin: 0;
+    font-family: inherit;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #666;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.compose-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 15px 20px;
+    border-top: 1px solid #f0f0f0;
+    background-color: #fafafa;
+}
+
+.btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #0078d4;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #005a9e;
+}
+
+.btn-primary:active {
+    background-color: #004166;
+}
+
+.btn-secondary {
+    background-color: #e8e8e8;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background-color: #d0d0d0;
+}
+
+.btn-secondary:active {
+    background-color: #b8b8b8;
+}
+
+/* Scrollbar styling in modal */
+.compose-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.compose-body::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+.compose-body::-webkit-scrollbar-thumb {
+    background: #d0d0d0;
+    border-radius: 4px;
+}
+
+.compose-body::-webkit-scrollbar-thumb:hover {
+    background: #b0b0b0;
+}
+
+@media (max-width: 600px) {
+    .compose-modal {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .compose-body {
+        padding: 15px;
+    }
+
+    .compose-footer {
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+}

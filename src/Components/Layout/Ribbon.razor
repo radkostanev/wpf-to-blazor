@@ -1,0 +1,413 @@
+@using OutlookInspiredApp.Blazor.Services.Interfaces
+@using OutlookInspiredApp.Blazor.Components.Mail
+@implements IDisposable
+@inject IMailService MailService
+@inject ICalendarService CalendarService
+@inject IThemeService ThemeService
+
+<div class="ribbon">
+    <div class="ribbon-header">
+        <div class="ribbon-tabs">
+            <TelerikButton FillMode="flat"
+                           Class="@($"ribbon-tab {(ActiveTab == "home" ? "active" : "")}")"
+                           OnClick='() => SetActiveTab("home")'
+                           ButtonType="ButtonType.Button">Home</TelerikButton>
+            <TelerikButton FillMode="flat"
+                           Class="@($"ribbon-tab {(ActiveTab == "themes" ? "active" : "")}")"
+                           OnClick='() => SetActiveTab("themes")'
+                           ButtonType="ButtonType.Button">Themes</TelerikButton>
+        </div>
+    </div>
+
+    <div class="ribbon-content">
+        <div class="ribbon-content-inner">
+            @if (ActiveTab == "themes")
+            {
+                <div class="ribbon-group">
+                    <div class="ribbon-group-label">Choose Theme</div>
+                    <div class="ribbon-buttons ribbon-themes">
+                        @foreach (var theme in ThemeService.AvailableThemes)
+                        {
+                            <button class="ribbon-theme-swatch @(ThemeService.CurrentTheme == theme.Id ? "ribbon-theme-active" : "")"
+                                    title="@theme.Label"
+                                    style="background: @theme.Swatch"
+                                    @onclick="() => OnSelectTheme(theme.Id)">
+                                <span class="ribbon-theme-label">@theme.Label</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+            else if (CurrentView == "calendar")
+            {
+                @if (ActiveTab == "home")
+                {
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Appointment</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Calendar"
+                                           Title="New Appointment"
+                                           OnClick="OnNewAppointment"
+                                           ButtonType="ButtonType.Button">New Appointment</TelerikButton>
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Trash"
+                                           Title="Delete Appointment"
+                                           OnClick="OnDeleteAppointment"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Delete Appointment</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Go To</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Calendar"
+                                           Title="Go to Today"
+                                           OnClick="OnGoToToday"
+                                           ButtonType="ButtonType.Button">Today</TelerikButton>
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.ArrowRight"
+                                           Title="Next Range"
+                                           OnClick="OnNextRange"
+                                           ButtonType="ButtonType.Button">Next Range</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Views</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="@(CalendarView == "Day" ? "solid" : "flat")"
+                                           ThemeColor="@(CalendarView == "Day" ? "primary" : "base")"
+                                           Class="ribbon-button"
+                                           Title="Day View"
+                                           OnClick='() => SetCalendarView("Day")'
+                                           ButtonType="ButtonType.Button">Day View</TelerikButton>
+                            <TelerikButton FillMode="@(CalendarView == "Week" ? "solid" : "flat")"
+                                           ThemeColor="@(CalendarView == "Week" ? "primary" : "base")"
+                                           Class="ribbon-button"
+                                           Title="Week View"
+                                           OnClick='() => SetCalendarView("Week")'
+                                           ButtonType="ButtonType.Button">Week View</TelerikButton>
+                            <TelerikButton FillMode="@(CalendarView == "WorkWeek" ? "solid" : "flat")"
+                                           ThemeColor="@(CalendarView == "WorkWeek" ? "primary" : "base")"
+                                           Class="ribbon-button"
+                                           Title="Work View"
+                                           OnClick='() => SetCalendarView("WorkWeek")'
+                                           ButtonType="ButtonType.Button">Work View</TelerikButton>
+                            <TelerikButton FillMode="@(CalendarView == "Month" ? "solid" : "flat")"
+                                           ThemeColor="@(CalendarView == "Month" ? "primary" : "base")"
+                                           Class="ribbon-button"
+                                           Title="Month View"
+                                           OnClick='() => SetCalendarView("Month")'
+                                           ButtonType="ButtonType.Button">Month View</TelerikButton>
+                            <TelerikButton FillMode="@(CalendarView == "Timeline" ? "solid" : "flat")"
+                                           ThemeColor="@(CalendarView == "Timeline" ? "primary" : "base")"
+                                           Class="ribbon-button"
+                                           Title="Timeline View"
+                                           OnClick='() => SetCalendarView("Timeline")'
+                                           ButtonType="ButtonType.Button">Timeline View</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Markers</div>
+                        <div class="ribbon-buttons">
+                            <TelerikDropDownButton FillMode="flat"
+                                                   Class="ribbon-button"
+                                                   Icon="@SvgIcon.Categorize"
+                                                   Title="Categorize">
+                                <DropDownButtonContent>Categorize</DropDownButtonContent>
+                                <DropDownButtonItems>
+                                    @foreach (var cat in Categories)
+                                    {
+                                        <DropDownButtonItem OnClick="@(() => OnSetCalendarCategory(cat.Name))">
+                                            <span class="cat-dot" style="background:@cat.Color"></span>@cat.Name
+                                        </DropDownButtonItem>
+                                    }
+                                    <DropDownButtonItem OnClick="@(() => OnSetCalendarCategory("Clear"))">Clear</DropDownButtonItem>
+                                </DropDownButtonItems>
+                            </TelerikDropDownButton>
+                            <TelerikDropDownButton FillMode="flat"
+                                                   Class="ribbon-button"
+                                                   Icon="@SvgIcon.Clock"
+                                                   Title="Time Markers">
+                                <DropDownButtonContent>Time Markers</DropDownButtonContent>
+                                <DropDownButtonItems>
+                                    @foreach (var tm in TimeMarkers)
+                                    {
+                                        <DropDownButtonItem OnClick="@(() => OnSetTimeMarker(tm.Name))">
+                                            <span class="cat-dot" style="background:@tm.Color"></span>@tm.Name
+                                        </DropDownButtonItem>
+                                    }
+                                    <DropDownButtonItem OnClick="@(() => OnSetTimeMarker("Clear"))">Clear</DropDownButtonItem>
+                                </DropDownButtonItems>
+                            </TelerikDropDownButton>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <!-- Mail ribbon -->
+                @if (ActiveTab == "home")
+                {
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">New</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Envelope"
+                                           Title="New Email"
+                                           OnClick="OnNewEmail"
+                                           ButtonType="ButtonType.Button">New Email</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Delete</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button ribbon-button-danger"
+                                           Icon="@SvgIcon.Trash"
+                                           Title="Delete"
+                                           OnClick="OnDelete"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Delete</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Respond</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Undo"
+                                           Title="Reply"
+                                           OnClick="OnReply"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Reply</TelerikButton>
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Undo"
+                                           Title="Reply All"
+                                           OnClick="OnReplyAll"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Reply All</TelerikButton>
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Forward"
+                                           Title="Forward"
+                                           OnClick="OnForward"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Forward</TelerikButton>
+                        </div>
+                    </div>
+
+                    <div class="ribbon-group">
+                        <div class="ribbon-group-label">Tags</div>
+                        <div class="ribbon-buttons">
+                            <TelerikButton FillMode="flat"
+                                           Class="ribbon-button"
+                                           Icon="@SvgIcon.Check"
+                                           Title="Unread / Read"
+                                           OnClick="OnMarkRead"
+                                           Enabled="@HasSelectedEmail"
+                                           ButtonType="ButtonType.Button">Unread/Read</TelerikButton>
+                            <TelerikDropDownButton FillMode="flat"
+                                                   Class="ribbon-button"
+                                                   Icon="@SvgIcon.Categorize"
+                                                   Title="Categorize"
+                                                   Enabled="@HasSelectedEmail">
+                                <DropDownButtonContent>Categorize</DropDownButtonContent>
+                                <DropDownButtonItems>
+                                    @foreach (var cat in Categories)
+                                    {
+                                        <DropDownButtonItem OnClick="@(() => OnSetMailCategory(cat.Name))">
+                                            <span class="cat-dot" style="background:@cat.Color"></span>@cat.Name
+                                        </DropDownButtonItem>
+                                    }
+                                    <DropDownButtonItem OnClick="@(() => OnSetMailCategory("Clear"))">Clear</DropDownButtonItem>
+                                </DropDownButtonItems>
+                            </TelerikDropDownButton>
+                            <TelerikDropDownButton FillMode="flat"
+                                                   Class="ribbon-button"
+                                                   Icon="@SvgIcon.PinSolid"
+                                                   Title="Follow Up"
+                                                   Enabled="@HasSelectedEmail">
+                                <DropDownButtonContent>Follow Up</DropDownButtonContent>
+                                <DropDownButtonItems>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("Today"))">Today</DropDownButtonItem>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("Tomorrow"))">Tomorrow</DropDownButtonItem>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("ThisWeek"))">This Week</DropDownButtonItem>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("NextWeek"))">Next Week</DropDownButtonItem>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("NoDate"))">No Date</DropDownButtonItem>
+                                    <DropDownButtonItem OnClick="@(() => OnSetFollowUp("Clear"))">Clear Flag</DropDownButtonItem>
+                                </DropDownButtonItems>
+                            </TelerikDropDownButton>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public ComposeModal? ComposeModalRef { get; set; }
+
+    [Parameter]
+    public string CurrentView { get; set; } = "mail";
+
+    [Parameter]
+    public EventCallback<string> OnCalendarViewChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnGoToTodayClicked { get; set; }
+
+    [Parameter]
+    public EventCallback OnNewAppointmentClicked { get; set; }
+
+    private string ActiveTab = "home";
+    private string CalendarView = "Week";
+    private bool HasSelectedEmail => MailService.GetState().SelectedEmail != null;
+
+    // Category swatches matching WPF
+    private static readonly List<(string Name, string Color)> Categories = new()
+    {
+        ("Yellow Category", "#FFD700"),
+        ("Green Category",  "#44A340"),
+        ("Purple Category", "#9B59B6"),
+        ("Pink Category",   "#E91E8C"),
+    };
+
+    // Time markers matching WPF
+    private static readonly List<(string Name, string Color)> TimeMarkers = new()
+    {
+        ("Free",         "#FFFFFF"),
+        ("Busy",         "#0078D4"),
+        ("Tentative",    "#9B9EA2"),
+        ("Out of office","#8B0000"),
+    };
+
+    protected override void OnInitialized()
+    {
+        ThemeService.StateChanged += OnThemeChanged;
+        MailService.StateChanged += OnMailStateChanged;
+    }
+
+    private void OnThemeChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnMailStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.StateChanged -= OnThemeChanged;
+        MailService.StateChanged -= OnMailStateChanged;
+    }
+
+    private void SetActiveTab(string tab) => ActiveTab = tab;
+
+    private async Task OnSelectTheme(string themeId)
+    {
+        await ThemeService.SetThemeAsync(themeId);
+    }
+
+    private async Task SetCalendarView(string view)
+    {
+        CalendarView = view;
+        await CalendarService.SetViewAsync(view);
+    }
+
+    private async Task OnGoToToday() => await CalendarService.NavigateTodayAsync();
+
+    private async Task OnNextRange()
+    {
+        var state = CalendarService.GetState();
+        var current = state.CurrentDate;
+        DateTime next = state.CurrentView switch
+        {
+            "Day" => current.AddDays(1),
+            "Week" or "WorkWeek" => current.AddDays(7),
+            "Month" => current.AddMonths(1),
+            _ => current.AddDays(7)
+        };
+        await CalendarService.NavigateToDateAsync(next);
+    }
+
+    private async Task OnNewAppointment() => await OnNewAppointmentClicked.InvokeAsync();
+    private async Task OnDeleteAppointment() => Console.WriteLine("Delete Appointment");
+
+    private async Task OnSetMailCategory(string cat)
+    {
+        var categoryId = cat == "Clear" ? string.Empty : cat;
+        await MailService.SetCategoryAsync(categoryId);
+    }
+
+    private async Task OnSetFollowUp(string flag)
+    {
+        var followUp = flag switch
+        {
+            "Today" => FollowUpType.Today,
+            "Tomorrow" => FollowUpType.Tomorrow,
+            "ThisWeek" => FollowUpType.ThisWeek,
+            "NextWeek" => FollowUpType.NextWeek,
+            "NoDate" => FollowUpType.NoDate,
+            _ => FollowUpType.None  // "Clear"
+        };
+        await MailService.SetFollowUpAsync(followUp);
+    }
+    private void OnSetCalendarCategory(string cat) => Console.WriteLine($"Set calendar category: {cat}");
+    private void OnSetTimeMarker(string marker) => Console.WriteLine($"Set time marker: {marker}");
+
+    private async Task OnNewEmail()
+    {
+        await MailService.RequestComposeAsync(MailComposeAction.New);
+    }
+
+    private async Task OnReply()
+    {
+        if (HasSelectedEmail)
+            await MailService.RequestComposeAsync(MailComposeAction.Reply);
+    }
+
+    private async Task OnReplyAll()
+    {
+        if (HasSelectedEmail)
+            await MailService.RequestComposeAsync(MailComposeAction.ReplyAll);
+    }
+
+    private async Task OnForward()
+    {
+        if (HasSelectedEmail)
+            await MailService.RequestComposeAsync(MailComposeAction.Forward);
+    }
+
+    private async Task OnDelete()
+    {
+        var state = MailService.GetState();
+        if (state.SelectedEmail != null)
+        {
+            Console.WriteLine($"Delete: {state.SelectedEmail.Subject}");
+        }
+    }
+
+    private async Task OnMarkRead()
+    {
+        await MailService.ToggleReadAsync();
+    }
+
+}
+

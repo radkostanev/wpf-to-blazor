@@ -1,0 +1,103 @@
+@page "/calendar"
+@using OutlookInspiredApp.Blazor.Services.Interfaces
+@inject ICalendarService CalendarService
+@implements IDisposable
+
+<div class="calendar-page">
+    <TelerikScheduler Data="@appointments"
+                      @bind-Date="@schedulerDate"
+                      @bind-View="@schedulerView"
+                      IdField="@nameof(Appointment.AppointmentID)"
+                      TitleField="@nameof(Appointment.Subject)"
+                      DescriptionField="@nameof(Appointment.Description)"
+                      StartField="@nameof(Appointment.Start)"
+                      EndField="@nameof(Appointment.End)"
+                      IsAllDayField="@nameof(Appointment.IsAllDay)"
+                      RecurrenceRuleField="@nameof(Appointment.RecurrenceRule)"
+                      OnCreate="@OnAppointmentCreate"
+                      OnUpdate="@OnAppointmentUpdate"
+                      OnDelete="@OnAppointmentDelete"
+                      AllowCreate="true"
+                      AllowUpdate="true"
+                      AllowDelete="true"
+                      Height="100%"
+                      Width="100%">
+        <SchedulerViews>
+            <SchedulerDayView StartTime="@dayStart" EndTime="@dayEnd" />
+            <SchedulerWeekView StartTime="@dayStart" EndTime="@dayEnd" WorkDayStart="@dayStart" WorkDayEnd="@dayEnd" />
+            <SchedulerMonthView />
+            <SchedulerMultiDayView StartTime="@dayStart" EndTime="@dayEnd" NumberOfDays="5" />
+            <SchedulerTimelineView StartTime="@dayStart" EndTime="@dayEnd" />
+        </SchedulerViews>
+    </TelerikScheduler>
+</div>
+
+@code {
+    private List<Appointment> appointments = new();
+    private DateTime schedulerDate = DateTime.Today;
+    private SchedulerView schedulerView = SchedulerView.Week;
+
+    private readonly DateTime dayStart = new DateTime(2000, 1, 1, 7, 0, 0);
+    private readonly DateTime dayEnd = new DateTime(2000, 1, 1, 20, 0, 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        CalendarService.StateChanged += OnCalendarStateChanged;
+        await CalendarService.LoadAppointmentsAsync(DateTime.Today.AddDays(-30), DateTime.Today.AddDays(90));
+        var state = CalendarService.GetState();
+        appointments = state.Appointments;
+        ApplyServiceState(state);
+    }
+
+    private void OnCalendarStateChanged()
+    {
+        var state = CalendarService.GetState();
+        appointments = state.Appointments;
+        ApplyServiceState(state);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyServiceState(CalendarServiceState state)
+    {
+        schedulerDate = state.CurrentDate;
+        schedulerView = state.CurrentView switch
+        {
+            "Day" => SchedulerView.Day,
+            "Week" => SchedulerView.Week,
+            "WorkWeek" => SchedulerView.MultiDay,
+            "Month" => SchedulerView.Month,
+            "Timeline" => SchedulerView.Timeline,
+            _ => SchedulerView.Week
+        };
+    }
+
+    private async Task OnAppointmentCreate(SchedulerCreateEventArgs args)
+    {
+        var apt = (Appointment)args.Item;
+        apt.AppointmentID = Guid.NewGuid().ToString();
+        await CalendarService.CreateAppointmentAsync(apt);
+        var state = CalendarService.GetState();
+        appointments = state.Appointments;
+    }
+
+    private async Task OnAppointmentUpdate(SchedulerUpdateEventArgs args)
+    {
+        var apt = (Appointment)args.Item;
+        await CalendarService.UpdateAppointmentAsync(apt);
+        var state = CalendarService.GetState();
+        appointments = state.Appointments;
+    }
+
+    private async Task OnAppointmentDelete(SchedulerDeleteEventArgs args)
+    {
+        var apt = (Appointment)args.Item;
+        await CalendarService.DeleteAppointmentAsync(apt.AppointmentID);
+        var state = CalendarService.GetState();
+        appointments = state.Appointments;
+    }
+
+    public void Dispose()
+    {
+        CalendarService.StateChanged -= OnCalendarStateChanged;
+    }
+}

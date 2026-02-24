@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OutlookInspiredApp.Blazor</title>
+    <base href="/" />
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <link href="OutlookInspiredApp.Blazor.styles.css" rel="stylesheet" />
+    <!-- Telerik CSS (default theme; overridden by HeadContent once Blazor loads) -->
+    <link id="telerik-theme-css" rel="stylesheet" href="_content/Telerik.UI.for.Blazor/css/kendo-theme-default/all.css" />
+    <script type="importmap"></script>
+    <script>
+        // Restore saved theme immediately to avoid flash of default theme
+        (function () {
+            try {
+                var saved = localStorage.getItem('telerik-theme');
+                if (saved && saved !== 'kendo-theme-default') {
+                    var link = document.getElementById('telerik-theme-css');
+                    if (link) link.href = '_content/Telerik.UI.for.Blazor/css/' + saved + '/all.css';
+                }
+            } catch (e) {}
+        })();
+    </script>
+</head>
+
+<body>
+    <div id="app">
+        <svg class="loading-progress">
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">🗙</span>
+    </div>
+    <!-- Telerik JS must load before Blazor so TelerikBlazor.* is available when components initialize -->
+    <script src="_content/Telerik.UI.for.Blazor/js/telerik-blazor.js"></script>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>

@@ -1,0 +1,636 @@
+/* Mail page - 2 pane: email list | email detail */
+.mail-page {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.mail-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 1px;
+    flex: 1;
+    min-height: 0;
+    background-color: #e0e0e0;
+    overflow: hidden;
+}
+
+/* ── Email list pane ── */
+.email-list-pane {
+    background-color: #fafafa;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.email-list-toolbar {
+    flex-shrink: 0;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #f5f5f5;
+    padding: 6px 8px 4px;
+}
+
+/* Search bar */
+.email-search-row {
+    margin-bottom: 4px;
+}
+
+.search-box-wrap {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    height: 26px;
+}
+
+.search-icon {
+    font-size: 12px;
+    color: #999;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.email-search-input {
+    border: none;
+    outline: none;
+    flex: 1;
+    font-size: 12px;
+    background: transparent;
+    color: #333;
+}
+
+.search-clear-btn {
+    border: none;
+    background: none;
+    color: #999;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+
+.search-clear-btn:hover { color: #333; }
+
+/* All / Unread radio filter */
+.email-filter-row {
+    display: flex;
+    gap: 12px;
+    padding: 2px 0;
+}
+
+.filter-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #444;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    user-select: none;
+}
+
+.filter-radio input[type="radio"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.filter-radio-active {
+    font-weight: 700;
+    color: #0078d4;
+}
+
+/* Date group headers in email list */
+.email-group-header {
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #555;
+    background: #efefef;
+    border-bottom: 1px solid #e4e4e4;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    list-style: none;
+}
+
+.email-ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.email-item {
+    position: relative;
+}
+
+.email-cat-stripe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.email-item a {
+    display: block;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.email-item a:hover {
+    background-color: #f0f0f0;
+}
+
+.email-item.selected a {
+    background-color: #cce4f7;
+    border-left: 3px solid #0078d4;
+}
+
+/* Unread emails: bold */
+.email-item.unread .email-from,
+.email-item.unread .email-subject-row {
+    font-weight: 700;
+}
+
+.email-item.unread a {
+    background-color: #fff;
+}
+
+.email-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+
+.email-from {
+    font-size: 13px;
+    color: #1a1a1a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+}
+
+.email-date {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.email-subject-row {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.email-preview {
+    font-size: 11px;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.no-emails {
+    padding: 32px 16px;
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+}
+
+/* ── Email detail pane ── */
+.email-detail {
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.email-header {
+    padding: 10px 20px 8px;
+    border-bottom: 1px solid #e8e8e8;
+    background-color: #fff;
+    flex-shrink: 0;
+}
+
+/* Action buttons: Reply / Reply All / Forward */
+.email-detail-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.detail-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    background: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    color: #333;
+    transition: background 0.15s;
+}
+
+.detail-action-btn:hover {
+    background: #e8e8e8;
+    border-color: #aaa;
+}
+
+/* From / To row */
+.email-from-to-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.detail-label {
+    color: #888;
+    font-weight: 600;
+}
+
+.detail-separator {
+    color: #ccc;
+}
+
+.detail-to {
+    color: #333;
+}
+
+.email-from-header {
+    font-weight: 600;
+    font-size: 12px;
+    color: #0078d4;
+}
+
+/* Subject + Date row */
+.email-subject-date-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.email-subject-header {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.email-date-header {
+    font-size: 11px;
+    color: #888;
+    margin-left: auto;
+}
+
+.email-detail-divider {
+    height: 1px;
+    background: #d4d4d4;
+    margin-top: 6px;
+}
+
+.email-body-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+.email-body {
+    line-height: 1.65;
+    color: #333;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+/* ── No selection placeholder ── */
+.no-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #bbb;
+    font-size: 14px;
+    gap: 12px;
+}
+
+.no-selection-icon {
+    font-size: 48px;
+    opacity: 0.3;
+}
+
+/* ── Inline compose pane ── */
+.compose-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.compose-pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 6px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f8f8f8;
+    flex-shrink: 0;
+}
+
+.compose-pane-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.compose-discard-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: background 0.15s;
+}
+
+.compose-discard-btn:hover {
+    background: #e8e8e8;
+    color: #333;
+}
+
+.compose-fields {
+    flex-shrink: 0;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fff;
+}
+
+.compose-field-row {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 0 8px;
+    min-height: 28px;
+}
+
+.compose-field-row:last-child { border-bottom: none; }
+
+.compose-field-label {
+    font-size: 12px;
+    color: #888;
+    padding-right: 6px;
+}
+
+.compose-field-input {
+    border: none;
+    outline: none;
+    font-size: 13px;
+    padding: 5px 0;
+    background: transparent;
+    width: 100%;
+}
+
+.compose-body-area {
+    flex: 1;
+    overflow: auto;
+    padding: 8px;
+    background: #fff;
+    display: flex;
+}
+
+.compose-textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.5;
+    padding: 4px 8px;
+    flex: 1;
+}
+
+.compose-quote {
+    flex-shrink: 0;
+    padding: 0 16px 12px;
+    overflow: hidden;
+}
+
+.compose-quote-meta {
+    color: #888;
+    font-size: 11px;
+}
+
+.compose-quote-body {
+    margin: 6px 0 0 0;
+    padding-left: 12px;
+    border-left: 3px solid #ccc;
+    color: #555;
+    font-size: 12px;
+    max-height: 120px;
+    overflow: hidden;
+}
+
+.compose-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    border-top: 1px solid #e0e0e0;
+    background: #f8f8f8;
+    flex-shrink: 0;
+}
+
+.compose-send-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: #0078d4;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.compose-send-btn:hover { background: #005fa3; }
+
+.email-item a {
+    display: block;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid #f0f0f0;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.email-item a:hover {
+    background-color: #f0f0f0;
+}
+
+.email-item.selected a {
+    background-color: #cce4f7;
+    border-left: 3px solid #0078d4;
+}
+
+/* Unread emails: bold */
+.email-item.unread .email-from,
+.email-item.unread .email-subject-row {
+    font-weight: 700;
+}
+
+.email-item.unread a {
+    background-color: #fff;
+}
+
+.email-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2px;
+}
+
+.email-from {
+    font-size: 13px;
+    color: #1a1a1a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+}
+
+.email-date {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.email-subject-row {
+    font-size: 12px;
+    color: #333;
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.email-preview {
+    font-size: 11px;
+    color: #999;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.no-emails {
+    padding: 32px 16px;
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+}
+
+/* ── Email detail pane ── */
+.email-detail {
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.email-header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #e8e8e8;
+    background-color: #fff;
+    flex-shrink: 0;
+}
+
+.email-subject-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.email-meta {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.email-from-header {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0078d4;
+}
+
+.email-date-header {
+    font-size: 12px;
+    color: #888;
+}
+
+.email-to-header {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+
+.email-body-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+.email-body {
+    line-height: 1.65;
+    color: #333;
+    font-size: 14px;
+    word-wrap: break-word;
+}
+
+.no-selection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #bbb;
+    font-size: 14px;
+    gap: 12px;
+}
+
+.no-selection-icon {
+    font-size: 48px;
+    opacity: 0.3;
+}

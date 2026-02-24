@@ -1,0 +1,67 @@
+[
+  {
+    "folderId": "account-mark",
+    "name": "Mark@telerikdomain.com",
+    "unreadCount": 0,
+    "parentFolderId": "",
+    "subFolders": [
+      {
+        "folderId": "inbox",
+        "name": "Inbox",
+        "unreadCount": 8,
+        "parentFolderId": "account-mark",
+        "subFolders": []
+      },
+      {
+        "folderId": "sent-items",
+        "name": "Sent Items",
+        "unreadCount": 0,
+        "parentFolderId": "account-mark",
+        "subFolders": []
+      },
+      {
+        "folderId": "deleted-items",
+        "name": "Deleted Items",
+        "unreadCount": 0,
+        "parentFolderId": "account-mark",
+        "subFolders": []
+      },
+      {
+        "folderId": "drafts",
+        "name": "Drafts",
+        "unreadCount": 1,
+        "parentFolderId": "account-mark",
+        "subFolders": []
+      }
+    ]
+  },
+  {
+    "folderId": "public-folders",
+    "name": "Public Folders",
+    "unreadCount": 12,
+    "parentFolderId": "",
+    "subFolders": [
+      {
+        "folderId": "it-news",
+        "name": "IT News",
+        "unreadCount": 4,
+        "parentFolderId": "public-folders",
+        "subFolders": []
+      },
+      {
+        "folderId": "sport-news",
+        "name": "Sport News",
+        "unreadCount": 7,
+        "parentFolderId": "public-folders",
+        "subFolders": []
+      },
+      {
+        "folderId": "global-news",
+        "name": "Global News",
+        "unreadCount": 1,
+        "parentFolderId": "public-folders",
+        "subFolders": []
+      }
+    ]
+  }
+]

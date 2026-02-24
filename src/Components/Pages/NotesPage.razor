@@ -1,0 +1,149 @@
+@page "/notes"
+
+<div class="page-container">
+    <div class="page-header">
+        <h2>Notes</h2>
+        <TelerikButton ThemeColor="primary"
+                       Icon="@SvgIcon.Plus"
+                       OnClick="OnNewNote"
+                       ButtonType="ButtonType.Button">New Note</TelerikButton>
+    </div>
+
+    <div class="page-content">
+        <div class="notes-grid">
+            @foreach (var note in notes)
+            {
+                <TelerikCard Width="260px" Class="note-card">
+                    <CardHeader>
+                        <CardTitle>@note.Title</CardTitle>
+                        <span class="note-date">@note.Date.ToString("MMM d, yyyy")</span>
+                    </CardHeader>
+                    <CardBody>
+                        <p class="note-preview">@note.Body</p>
+                    </CardBody>
+                    <CardActions Layout="@CardActionsLayout.End">
+                        <TelerikButton FillMode="flat"
+                                       Icon="@SvgIcon.Pencil"
+                                       Title="Edit"
+                                       OnClick="@(() => EditNote(note))"
+                                       ButtonType="ButtonType.Button" />
+                        <TelerikButton FillMode="flat"
+                                       Icon="@SvgIcon.Trash"
+                                       Title="Delete"
+                                       OnClick="@(() => DeleteNote(note))"
+                                       ButtonType="ButtonType.Button" />
+                    </CardActions>
+                </TelerikCard>
+            }
+        </div>
+    </div>
+</div>
+
+@if (showNoteEditor)
+{
+    <TelerikWindow Visible="@showNoteEditor"
+                   VisibleChanged="@OnNoteEditorClose"
+                   Modal="true"
+                   Width="520px"
+                   Draggable="true"
+                   AnimationType="WindowAnimationType.Fade">
+        <WindowTitle>@(editingNote?.Id == 0 ? "New Note" : "Edit Note")</WindowTitle>
+        <WindowActions>
+            <WindowAction Name="Close" />
+        </WindowActions>
+        <WindowContent>
+            <div class="form-group">
+                <label>Title:</label>
+                <TelerikTextBox @bind-Value="editTitle" Placeholder="Note title" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Content:</label>
+                <TelerikTextArea @bind-Value="editBody" Rows="8" Width="100%" />
+            </div>
+        </WindowContent>
+        <WindowFooter>
+            <TelerikButton ThemeColor="primary"
+                           Icon="@SvgIcon.Save"
+                           OnClick="SaveNote"
+                           ButtonType="ButtonType.Button">Save</TelerikButton>
+            <TelerikButton FillMode="outline"
+                           Icon="@SvgIcon.X"
+                           OnClick="@(() => showNoteEditor = false)"
+                           ButtonType="ButtonType.Button">Cancel</TelerikButton>
+        </WindowFooter>
+    </TelerikWindow>
+}
+
+@code {
+    public class NoteItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Body { get; set; } = "";
+        public DateTime Date { get; set; }
+    }
+
+    private List<NoteItem> notes = new()
+    {
+        new NoteItem { Id = 1, Title = "Project Ideas",            Date = new DateTime(2026, 2, 20), Body = "• Implement dark mode theme\n• Add email templates\n• Create contact groups\n• Build mail filters" },
+        new NoteItem { Id = 2, Title = "Meeting Notes – Q1 Planning", Date = new DateTime(2026, 2, 18), Body = "Discussed quarterly goals and team assignments. Sarah will lead design improvements, Mike will focus on performance optimization." },
+        new NoteItem { Id = 3, Title = "Personal Reminders",       Date = new DateTime(2026, 2, 15), Body = "• Call dentist for appointment\n• Renew car insurance by March 1\n• Order supplies for office\n• Follow up with John about proposal" },
+        new NoteItem { Id = 4, Title = "Client Feedback Summary",  Date = new DateTime(2026, 2, 12), Body = "Positive feedback on UI/UX improvements. Clients want better calendar integration and improved mobile experience." },
+    };
+
+    private bool showNoteEditor = false;
+    private NoteItem? editingNote;
+    private string editTitle = "";
+    private string editBody = "";
+
+    private void OnNewNote()
+    {
+        editingNote = new NoteItem { Id = 0 };
+        editTitle = "";
+        editBody = "";
+        showNoteEditor = true;
+    }
+
+    private void EditNote(NoteItem note)
+    {
+        editingNote = note;
+        editTitle = note.Title;
+        editBody = note.Body;
+        showNoteEditor = true;
+    }
+
+    private void DeleteNote(NoteItem note)
+    {
+        notes.Remove(note);
+    }
+
+    private void SaveNote()
+    {
+        if (editingNote == null || string.IsNullOrWhiteSpace(editTitle))
+            return;
+
+        if (editingNote.Id == 0)
+        {
+            notes.Add(new NoteItem
+            {
+                Id = notes.Count + 1,
+                Title = editTitle,
+                Body = editBody,
+                Date = DateTime.Today
+            });
+        }
+        else
+        {
+            editingNote.Title = editTitle;
+            editingNote.Body = editBody;
+            editingNote.Date = DateTime.Today;
+        }
+
+        showNoteEditor = false;
+    }
+
+    private void OnNoteEditorClose(bool visible)
+    {
+        showNoteEditor = visible;
+    }
+}

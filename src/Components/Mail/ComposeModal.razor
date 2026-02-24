@@ -1,0 +1,170 @@
+@using OutlookInspiredApp.Blazor.Services.Interfaces
+@using OutlookInspiredApp.Blazor.Models
+@inject IMailService MailService
+
+<TelerikWindow Visible="@IsOpen"
+               VisibleChanged="@OnWindowVisibleChanged"
+               Modal="true"
+               CloseOnOverlayClick="true"
+               Width="650px"
+               Draggable="true"
+               AnimationType="WindowAnimationType.Fade">
+    <WindowTitle>
+        @(IsReply ? (IsReplyAll ? "Reply All" : "Reply") : "New Message")
+    </WindowTitle>
+    <WindowActions>
+        <WindowAction Name="Close" />
+    </WindowActions>
+    <WindowContent>
+        <div class="compose-body">
+            <div class="form-group">
+                <label>To:</label>
+                <TelerikTextBox @bind-Value="ComposedEmail.To" Placeholder="recipient@example.com" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Cc:</label>
+                <TelerikTextBox @bind-Value="ComposedEmail.Cc" Placeholder="cc@example.com" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Bcc:</label>
+                <TelerikTextBox @bind-Value="ComposedEmail.Bcc" Placeholder="bcc@example.com" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Subject:</label>
+                <TelerikTextBox @bind-Value="ComposedEmail.Subject" Placeholder="Subject line" Width="100%" />
+            </div>
+            <div class="form-group">
+                <label>Message:</label>
+                <TelerikTextArea @bind-Value="ComposedEmail.Body" Placeholder="Type your message here..." Rows="12" Width="100%" />
+            </div>
+            @if (IsReply && OriginalEmail != null)
+            {
+                <div class="compose-quote">
+                    <hr />
+                    <small style="color: #999;">
+                        On @OriginalEmail.ReceivedDate.ToString("ddd, MMM d, yyyy 'at' h:mm tt"), @OriginalEmail.From wrote:
+                    </small>
+                    <blockquote>
+                        <pre>@OriginalEmail.Body</pre>
+                    </blockquote>
+                </div>
+            }
+        </div>
+    </WindowContent>
+    <WindowFooter>
+        <TelerikButton ThemeColor="primary"
+                       Icon="@SvgIcon.PaperPlane"
+                       OnClick="SendEmail"
+                       ButtonType="ButtonType.Button">Send</TelerikButton>
+        <TelerikButton FillMode="outline"
+                       Icon="@SvgIcon.X"
+                       OnClick="Close"
+                       ButtonType="ButtonType.Button">Discard</TelerikButton>
+    </WindowFooter>
+</TelerikWindow>
+
+@code {
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    private bool IsOpen = false;
+    private bool IsReply = false;
+    private bool IsReplyAll = false;
+    private Email? OriginalEmail;
+    private Email ComposedEmail = new();
+
+    public void OpenCompose()
+    {
+        IsOpen = true;
+        IsReply = false;
+        IsReplyAll = false;
+        OriginalEmail = null;
+        ComposedEmail = new Email
+        {
+            EmailID = Guid.NewGuid().ToString(),
+            SentDate = DateTime.Now,
+            From = "user@outlook.com",
+            Status = EmailStatus.Unread
+        };
+    }
+
+    public void OpenReply(bool replyAll = false)
+    {
+        var state = MailService.GetState();
+        if (state.SelectedEmail == null) return;
+
+        IsOpen = true;
+        IsReply = true;
+        IsReplyAll = replyAll;
+        OriginalEmail = state.SelectedEmail;
+
+        ComposedEmail = new Email
+        {
+            EmailID = Guid.NewGuid().ToString(),
+            SentDate = DateTime.Now,
+            From = "user@outlook.com",
+            To = state.SelectedEmail.From,
+            Subject = $"Re: {state.SelectedEmail.Subject}",
+            Body = "",
+            Status = EmailStatus.Unread
+        };
+
+        if (replyAll && !string.IsNullOrEmpty(state.SelectedEmail.Cc))
+        {
+            ComposedEmail.Cc = state.SelectedEmail.Cc;
+        }
+    }
+
+    public void OpenForward()
+    {
+        var state = MailService.GetState();
+        if (state.SelectedEmail == null) return;
+
+        IsOpen = true;
+        IsReply = false;
+        IsReplyAll = false;
+        OriginalEmail = state.SelectedEmail;
+
+        ComposedEmail = new Email
+        {
+            EmailID = Guid.NewGuid().ToString(),
+            SentDate = DateTime.Now,
+            From = "user@outlook.com",
+            Subject = $"Fwd: {state.SelectedEmail.Subject}",
+            Body = "",
+            Status = EmailStatus.Unread
+        };
+    }
+
+    private async Task OnWindowVisibleChanged(bool visible)
+    {
+        if (!visible)
+            await Close();
+        IsOpen = visible;
+    }
+
+    private async Task SendEmail()
+    {
+        if (string.IsNullOrWhiteSpace(ComposedEmail.Subject) ||
+            string.IsNullOrWhiteSpace(ComposedEmail.To) ||
+            string.IsNullOrWhiteSpace(ComposedEmail.Body))
+        {
+            return;
+        }
+
+        // Save email to sent items
+        ComposedEmail.FolderID = "sent-items";
+        ComposedEmail.Status = EmailStatus.Read;
+        await MailService.ComposeAsync(ComposedEmail);
+
+        await Close();
+    }
+
+    private async Task Close()
+    {
+        IsOpen = false;
+        ComposedEmail = new();
+        OriginalEmail = null;
+        await OnClose.InvokeAsync();
+    }
+}
